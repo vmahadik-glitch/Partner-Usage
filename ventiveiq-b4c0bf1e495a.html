@@ -29,7 +29,7 @@ h1{font-size:26px;color:var(--ink);letter-spacing:-.02em;margin-top:6px}.sub{fon
 .tabs button{padding:9px 16px;border:none;background:transparent;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;color:var(--mut);font-family:Lato}.tabs button.on{background:var(--tang);color:#fff}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(30,42,56,.04)}
 .panel h2{font-size:16px;color:var(--ink);margin-bottom:6px}.mini{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);margin:12px 0 6px}
-table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:right;font-size:11px;color:var(--mut);font-weight:700;padding:8px 10px;border-bottom:2px solid var(--line);white-space:nowrap;cursor:pointer}th:first-child,td:first-child{text-align:left}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px;min-width:640px}th{text-align:right;font-size:11px;color:var(--mut);font-weight:700;padding:8px 10px;border-bottom:2px solid var(--line);white-space:nowrap;cursor:pointer}th:first-child,td:first-child{text-align:left}
 td{text-align:right;padding:7px 10px;border-bottom:1px solid #f4f0ec;white-space:nowrap;color:var(--ink)}td.wrap{white-space:normal}tbody tr:nth-child(even) td{background:#FBFBFC}tr:hover td{background:var(--alt)}th:hover{color:var(--tang)}
 .st{font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px}.st.new{background:#E6F4EC;color:var(--green)}.st.stop{background:#FBE9E7;color:var(--red)}.st.act{background:#EEF1F4;color:var(--mut)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
@@ -69,7 +69,7 @@ td{text-align:right;padding:7px 10px;border-bottom:1px solid #f4f0ec;white-space
 </div>
 <div id="v_advertisers" class="hidden"><div class="panel" id="advTbl"></div><div class="panel" id="advSegTbl"></div></div>
 <div id="v_segments" class="hidden"><div class="panel" id="segDaily"></div></div>
-<div id="v_movements" class="hidden"><div class="grid" id="moves"></div></div>
+<div id="v_movements" class="hidden"><div id="moves"></div></div>
 <div id="v_utilisation" class="hidden"><div class="panel" id="util"></div></div>
 
 <div class="foot">Definitions: "New" = active this week with no activity in the previous four weeks; "Stopped" = active in the previous four weeks with none this week. Utilisation = segments with any usage this week ÷ segments in your approved Amazon DSP catalogue. Prepared by Roq.ad (Zeotap). Data updates daily.</div>
@@ -94,7 +94,7 @@ function weekRows(mon){const ds=[...Array(7)].map((_,i)=>addD(mon,i));return ds.
 function priorRows(mon){const ds=[...Array(28)].map((_,i)=>addD(mon,-28+i));return ds.flatMap(d=>BYDATE[d]||[]);}
 function agg(rows,keyFn){const m={};rows.forEach(r=>{const k=keyFn(r);m[k]=(m[k]||0)+r.imp;});return m;}
 function sortTbl(id,col){const t=document.querySelector(`#${id} table`);if(!t)return;const rows=[...t.tBodies[0].rows];const asc=t.dataset.sort===col+'a';rows.sort((a,b)=>{const x=a.cells[col].dataset.v??a.cells[col].textContent,y=b.cells[col].dataset.v??b.cells[col].textContent;const nx=parseFloat(String(x).replace(/[^0-9.-]/g,'')),ny=parseFloat(String(y).replace(/[^0-9.-]/g,''));const cmp=(!isNaN(nx)&&!isNaN(ny))?nx-ny:String(x).localeCompare(String(y));return asc?cmp:-cmp;});rows.forEach(r=>t.tBodies[0].appendChild(r));t.dataset.sort=col+(asc?'d':'a');}
-function tbl(id,cols,rows,opts){opts=opts||{};const h=cols.map((c,i)=>`<th onclick="sortTbl('${id}',${i})">${c} ⇅</th>`).join('');const b=rows.map(r=>'<tr>'+r.map((c,i)=>`<td class="${i===0||opts.wrap?.includes(i)?'wrap':''}" data-v="${typeof c==='number'?c:''}">${typeof c==='number'?num(c):c}</td>`).join('')+'</tr>').join('');return `<table><thead><tr>${h}</tr></thead><tbody>${b||'<tr><td colspan="'+cols.length+'" style="text-align:center;color:var(--mut)">Nothing to show</td></tr>'}</tbody></table>`;}
+function tbl(id,cols,rows,opts){opts=opts||{};const h=cols.map((c,i)=>`<th onclick="sortTbl('${id}',${i})">${c} ⇅</th>`).join('');const b=rows.map(r=>'<tr>'+r.map((c,i)=>`<td class="${i===0||opts.wrap?.includes(i)?'wrap':''}" data-v="${typeof c==='number'?c:''}">${typeof c==='number'?num(c):c}</td>`).join('')+'</tr>').join('');return `<div class="tw"><table><thead><tr>${h}</tr></thead><tbody>${b||'<tr><td colspan="'+cols.length+'" style="text-align:center;color:var(--mut)">Nothing to show</td></tr>'}</tbody></table></div>`;}
 
 let LAST=null;
 function render(){
@@ -160,8 +160,8 @@ function render(){
   const asCur=agg(cur,r=>r.c+'|'+r.adv+'|'+r.seg), asPri=agg(pri,r=>r.c+'|'+r.adv+'|'+r.seg), lastPri={};pri.forEach(r=>{const k=r.c+'|'+r.adv+'|'+r.seg;if(!lastPri[k]||r.d>lastPri[k])lastPri[k]=r.d;});
   const sgPri=agg(pri,r=>r.c+'|'+r.seg);
   $('moves').innerHTML=
-    `<div class="panel"><h2 style="color:var(--green)">🌱 New advertiser–segment pairs (${newAS.length})</h2>`+tbl('m1',['Advertiser','Market','Segment','Impressions','New advertiser?'],newAS.sort((a,b)=>asCur[b]-asCur[a]).map(k=>{const [c,a,s]=k.split('|');return [esc(a),(FL[c]||'')+' '+(CN[c]||c),esc(s),asCur[k],newAdv.includes(a)?'Yes':'No'];}),{wrap:[0,2]})+'</div>'+
-    `<div class="panel"><h2 style="color:var(--red)">🛑 Stopped advertiser–segment pairs (${stopAS.length})</h2>`+tbl('m2',['Advertiser','Market','Segment','Prior 4-wk avg','Last active','Advertiser stopped?'],stopAS.sort((a,b)=>asPri[b]-asPri[a]).map(k=>{const [c,a,s]=k.split('|');return [esc(a),(FL[c]||'')+' '+(CN[c]||c),esc(s),Math.round(asPri[k]/4),fmtD(lastPri[k]),stopAdv.includes(a)?'Yes':'No'];}),{wrap:[0,2]})+'</div>'+
+    `<div class="panel"><h2 style="color:var(--green)">🌱 New advertiser–segment pairs (${newAS.length})</h2>`+tbl('m1',['Advertiser','Market','Segment','Impressions this week','New advertiser overall?'],newAS.sort((a,b)=>asCur[b]-asCur[a]).map(k=>{const [c,a,s]=k.split('|');return [esc(a),(FL[c]||'')+' '+(CN[c]||c),esc(s),asCur[k],newAdv.includes(a)?'Yes':'No'];}),{wrap:[0,2]})+'</div>'+
+    `<div class="panel"><h2 style="color:var(--red)">🛑 Stopped advertiser–segment pairs (${stopAS.length})</h2>`+tbl('m2',['Advertiser','Market','Segment','Prior 4-wk avg / week','Last active','Advertiser stopped overall?'],stopAS.sort((a,b)=>asPri[b]-asPri[a]).map(k=>{const [c,a,s]=k.split('|');return [esc(a),(FL[c]||'')+' '+(CN[c]||c),esc(s),Math.round(asPri[k]/4),fmtD(lastPri[k]),stopAdv.includes(a)?'Yes':'No'];}),{wrap:[0,2]})+'</div>'+
     `<div class="panel"><h2 style="color:var(--green)">✨ Segments newly in use (${newSeg.length})</h2>`+tbl('m3',['Segment','Market','Impressions','Advertisers'],newSeg.sort((a,b)=>sg[b]-sg[a]).map(k=>{const [c,s]=k.split('|');return [esc(s),(FL[c]||'')+' '+(CN[c]||c),sg[k],segAdv[k].size];}),{wrap:[0]})+'</div>'+
     `<div class="panel"><h2 style="color:var(--red)">💤 Segments gone quiet (${quietSeg.length})</h2>`+tbl('m4',['Segment','Market','Prior 4-wk avg'],quietSeg.sort((a,b)=>sgPri[b]-sgPri[a]).map(k=>{const [c,s]=k.split('|');return [esc(s),(FL[c]||'')+' '+(CN[c]||c),Math.round(sgPri[k]/4)];}),{wrap:[0]})+'</div>';
   LAST={mon,sun,days,elapsed,partial,cur,pri,impC,impP,names,util,catActive,activeKeys,catKey,segC,newAdv,stopAdv,newAS,stopAS,newSeg,quietSeg,mk,br,sg,segAdv,daily,priAvg,advImp,advPri,advMk,advSeg,asImp,asCur,asPri,lastPri,sgPri};
