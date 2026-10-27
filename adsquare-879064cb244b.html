@@ -171,7 +171,7 @@ function render(){
   LAST={mon,sun,days,elapsed,partial,cur,pri,impC,impP,names,util,catActive,activeKeys,catKey,segC,idFor,newAdv,stopAdv,newAS,stopAS,newSeg,quietSeg,mk,br,sg,segAdv,daily,priAvg,advImp,advPri,advMk,advSeg,asImp,asCur,asPri,lastPri,sgPri};
   // utilisation
   const keyImp=agg(cur,r=>r.c+'|'+r.seg), keyAdv={}; cur.forEach(r=>{const k=r.c+'|'+r.seg;(keyAdv[k]=keyAdv[k]||new Set()).add(r.adv);});
-  const activeRows=Object.keys(keyImp).sort((a,b)=>keyImp[b]-keyImp[a]).filter(k=>!q||k.toLowerCase().includes(q)).map(k=>{const [c,...rest]=k.split('|');const s=rest.join('|');const f=idFor(k);return [esc(s),(FL[c]||'')+' '+(CN[c]||c),!f?`<span class="st act">Active · not in ${CN[c]||c} catalogue</span>`:'<span class="st new">Active</span>',keyImp[k],share(keyImp[k]),keyAdv[k].size];});
+  const activeRows=Object.keys(keyImp).sort((a,b)=>keyImp[b]-keyImp[a]).filter(k=>!q||k.toLowerCase().includes(q)).map(k=>{const [c,...rest]=k.split('|');const s=rest.join('|');const f=idFor(k);return [esc(s),(FL[c]||'')+' '+(CN[c]||c),'<span class="st new">Active</span>',keyImp[k],share(keyImp[k]),keyAdv[k].size];});
   const unused=CAT.filter(e=>!activeKeys.has(catKey(e))).filter(e=>!q||String(e[1]).toLowerCase().includes(q)||String(e[0]).includes(q));
   $('util').innerHTML=`<h2>Catalogue utilisation</h2><div class="sub">${CAT.length?`${catActive.length} of ${CAT.length} approved segments recorded usage this week (${(util*100).toFixed(1)}%). Usage country is the country of the Amazon report the impressions appear in; it counts against your approved catalogue for that country. A segment approved in several countries counts once per country. Unused segments are listed below the active ones.`:`${segC.size} segments recorded usage this week. The approved catalogue has not been provided, so the utilisation ratio and unused list are not available.`}</div><div class="bar" style="margin:10px 0 14px"><div style="width:${util?Math.max(1,util*100):0}%"></div></div>`+
     tbl('util',['Segment','Market','Status','Impressions','Share','Advertisers'],activeRows.concat(unused.slice(0,400).map(e=>[esc(e[1]),(FL[e[2]]||'')+' '+(CN[e[2]]||e[2]||''),'<span class="st act">Not used</span>',0,'—',0])),{wrap:[0]})+
@@ -211,7 +211,7 @@ function downloadExcel(){
   // Utilisation
   const keyImp2=agg(L.cur,r=>r.c+'|'+r.seg), keyAdv2={}; L.cur.forEach(r=>{const k=r.c+'|'+r.seg;(keyAdv2[k]=keyAdv2[k]||new Set()).add(r.adv);});
   const ut=[['Approved segments',CAT.length],['Active this week (market × segment)',L.segC.size],['Approved segments in use',L.catActive.length],['Utilisation ratio',L.util==null?'n/a':pc(L.util*100)+'%'],[],['Segment','Market','Status','Impressions (week)','Share','Advertisers using it'],
-    ...Object.keys(keyImp2).sort((a,b)=>keyImp2[b]-keyImp2[a]).map(k=>{const [c,...rest]=k.split('|');const s=rest.join('|');const f=L.idFor(k);return [s,cn(c),!f?'Active (not in '+cn(c)+' catalogue)':'Active',keyImp2[k],L.impC?pc(keyImp2[k]/L.impC*100)+'%':'',keyAdv2[k].size];}),
+    ...Object.keys(keyImp2).sort((a,b)=>keyImp2[b]-keyImp2[a]).map(k=>{const [c,...rest]=k.split('|');const s=rest.join('|');const f=L.idFor(k);return [s,cn(c),'Active',keyImp2[k],L.impC?pc(keyImp2[k]/L.impC*100)+'%':'',keyAdv2[k].size];}),
     ...CAT.filter(e=>!L.activeKeys.has(L.catKey(e))).map(e=>[e[1],cn(e[2]),'Not used',0,'',0])];
   add('Segment utilisation',ut,[70,14,26,16,10,16]);
   // Notes
