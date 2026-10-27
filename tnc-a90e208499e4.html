@@ -117,9 +117,7 @@ function render(){
   const EURM=['DE','ES','FR','IT'];
   const catIdx={}; CAT.forEach(e=>{ catIdx[catKey(e)]=e; });
   const idFor=k=>{ const [c,...rest]=k.split('|'); const n=rest.join('|').toLowerCase();
-    if(catIdx[c+'|'+n]) return {id:catIdx[c+'|'+n][0],via:null};
-    if(EURM.includes(c)){ for(const m of EURM){ if(m!==c&&catIdx[m+'|'+n]) return {id:catIdx[m+'|'+n][0],via:m}; } }
-    return null; };
+    return catIdx[c+'|'+n] ? {id:catIdx[c+'|'+n][0],via:null} : null; };   // report country is the truth; never borrow another market's ID
   const newAdv=[...advC].filter(a=>!advP.has(a)), stopAdv=[...advP].filter(a=>!advC.has(a));
   const newAS=[...asC].filter(k=>!asP.has(k)), stopAS=[...asP].filter(k=>!asC.has(k));
   const newSeg=[...segC].filter(k=>!segP.has(k)), quietSeg=[...segP].filter(k=>!segC.has(k));
@@ -127,7 +125,7 @@ function render(){
   $('kpis').innerHTML=
     `<div class="kpi hi"><div class="k">Impressions</div><div class="v">${num(impC)}</div><div class="b">${badge(pct(impC,impP),partial?`vs same ${elapsed.length} days, prior 4-wk avg`:'vs prior 4-wk avg')}</div></div>`+
     `<div class="kpi"><div class="k">Active segments</div><div class="v">${segC.size}</div><div class="b">${newSeg.length} new · ${quietSeg.length} gone quiet</div></div>`+
-    `<div class="kpi"><div class="k">Catalogue utilisation</div><div class="v">${util==null?'—':(util*100).toFixed(1)+'%'}</div><div class="b">${CAT.length?`${catActive.length} of ${CAT.length} approved segment IDs in use`:'catalogue not provided'}</div></div>`+
+    `<div class="kpi"><div class="k">Catalogue utilisation</div><div class="v">${util==null?'—':(util*100).toFixed(1)+'%'}</div><div class="b">${CAT.length?`${catActive.length} of ${CAT.length} approved segments in use`:'catalogue not provided'}</div></div>`+
     `<div class="kpi"><div class="k">Active advertisers</div><div class="v">${advC.size}</div><div class="b"><span style="color:var(--green);font-weight:700">${newAdv.length} new</span> · <span style="color:var(--red);font-weight:700">${stopAdv.length} stopped</span></div></div>`+
     `<div class="kpi"><div class="k">Markets</div><div class="v">${new Set(cur.map(r=>r.c)).size}</div><div class="b">${[...new Set(cur.map(r=>r.c))].map(c=>FL[c]||c).join(' ')}</div></div>`;
   // chart: daily impressions this week + prior-4wk average per weekday
@@ -173,11 +171,11 @@ function render(){
   LAST={mon,sun,days,elapsed,partial,cur,pri,impC,impP,names,util,catActive,activeKeys,catKey,segC,idFor,newAdv,stopAdv,newAS,stopAS,newSeg,quietSeg,mk,br,sg,segAdv,daily,priAvg,advImp,advPri,advMk,advSeg,asImp,asCur,asPri,lastPri,sgPri};
   // utilisation
   const keyImp=agg(cur,r=>r.c+'|'+r.seg), keyAdv={}; cur.forEach(r=>{const k=r.c+'|'+r.seg;(keyAdv[k]=keyAdv[k]||new Set()).add(r.adv);});
-  const activeRows=Object.keys(keyImp).sort((a,b)=>keyImp[b]-keyImp[a]).filter(k=>!q||k.toLowerCase().includes(q)).map(k=>{const [c,...rest]=k.split('|');const s=rest.join('|');const f=idFor(k);return [esc(s),(FL[c]||'')+' '+(CN[c]||c),f?f.id:'—',!f?'<span class="st act">Active · not in catalogue</span>':(f.via?`<span class="st act">Active · EUR listing under ${f.via}</span>`:'<span class="st new">Active</span>'),keyImp[k],share(keyImp[k]),keyAdv[k].size];});
+  const activeRows=Object.keys(keyImp).sort((a,b)=>keyImp[b]-keyImp[a]).filter(k=>!q||k.toLowerCase().includes(q)).map(k=>{const [c,...rest]=k.split('|');const s=rest.join('|');const f=idFor(k);return [esc(s),(FL[c]||'')+' '+(CN[c]||c),!f?`<span class="st act">Active · not in ${CN[c]||c} catalogue</span>`:'<span class="st new">Active</span>',keyImp[k],share(keyImp[k]),keyAdv[k].size];});
   const unused=CAT.filter(e=>!activeKeys.has(catKey(e))).filter(e=>!q||String(e[1]).toLowerCase().includes(q)||String(e[0]).includes(q));
-  $('util').innerHTML=`<h2>Catalogue utilisation</h2><div class="sub">${CAT.length?`${catActive.length} of ${CAT.length} approved segment IDs recorded usage this week (${(util*100).toFixed(1)}%). A segment approved in several markets counts once per market. Unused IDs are listed below the active ones.`:`${segC.size} segments recorded usage this week. The approved catalogue has not been provided, so the utilisation ratio and unused list are not available.`}</div><div class="bar" style="margin:10px 0 14px"><div style="width:${util?Math.max(1,util*100):0}%"></div></div>`+
-    tbl('util',['Segment','Market','Segment ID','Status','Impressions','Share','Advertisers'],activeRows.concat(unused.slice(0,400).map(e=>[esc(e[1]),(FL[e[2]]||'')+' '+(CN[e[2]]||e[2]||''),e[0],'<span class="st act">Not used</span>',0,'—',0])),{wrap:[0]})+
-    (unused.length>400?`<div class="sub" style="margin-top:8px">Showing the first 400 of ${unused.length} unused IDs. Use the search box (name or ID) to find a specific one.</div>`:'');
+  $('util').innerHTML=`<h2>Catalogue utilisation</h2><div class="sub">${CAT.length?`${catActive.length} of ${CAT.length} approved segments recorded usage this week (${(util*100).toFixed(1)}%). Usage country is the country of the Amazon report the impressions appear in; it counts against your approved catalogue for that country. A segment approved in several countries counts once per country. Unused segments are listed below the active ones.`:`${segC.size} segments recorded usage this week. The approved catalogue has not been provided, so the utilisation ratio and unused list are not available.`}</div><div class="bar" style="margin:10px 0 14px"><div style="width:${util?Math.max(1,util*100):0}%"></div></div>`+
+    tbl('util',['Segment','Market','Status','Impressions','Share','Advertisers'],activeRows.concat(unused.slice(0,400).map(e=>[esc(e[1]),(FL[e[2]]||'')+' '+(CN[e[2]]||e[2]||''),'<span class="st act">Not used</span>',0,'—',0])),{wrap:[0]})+
+    (unused.length>400?`<div class="sub" style="margin-top:8px">Showing the first 400 of ${unused.length} unused segments. Use the search box to find a specific one.</div>`:'');
 }
 function downloadExcel(){
   if(!LAST||typeof XLSX==='undefined'){ alert('Excel export is still loading, try again in a second.'); return; }
@@ -187,7 +185,7 @@ function downloadExcel(){
   // Summary
   const sum=[[`${PARTNER} · Weekly Segment Usage Report`],[`Amazon DSP · ${lbl} · prepared by Roq.ad (Zeotap) · impressions only · T+4 indicative`],[],
     ['Impressions (week)',L.impC],['Prior 4-week avg / week',Math.round(L.impP)],['Change vs prior 4-week avg',L.impP?pc((L.impC/L.impP-1)*100)+'%':''],
-    ['Active segments',L.segC.size],['Catalogue utilisation',L.util==null?'n/a':pc(L.util*100)+'%'],['Approved segment IDs in use',CAT.length?L.catActive.length+' of '+CAT.length:'n/a'],['Active advertisers',Object.keys(L.advImp).length],['Markets',Object.keys(L.mk).length],[],
+    ['Active segments',L.segC.size],['Catalogue utilisation',L.util==null?'n/a':pc(L.util*100)+'%'],['Approved segments in use',CAT.length?L.catActive.length+' of '+CAT.length:'n/a'],['Active advertisers',Object.keys(L.advImp).length],['Markets',Object.keys(L.mk).length],[],
     ['What changed'],['New advertisers',L.newAdv.length],['Advertisers that stopped',L.stopAdv.length],['New advertiser–segment pairs',L.newAS.length],['Stopped advertiser–segment pairs',L.stopAS.length],['Segments newly in use',L.newSeg.length],['Segments gone quiet',L.quietSeg.length],[],
     ['By market','Impressions','Share'],...Object.entries(L.mk).sort((a,b)=>b[1]-a[1]).map(([c,v])=>[cn(c),v,L.impC?pc(v/L.impC*100)+'%':'']),[],
     ['By brand','Impressions','Share'],...Object.entries(L.br).sort((a,b)=>b[1]-a[1]).map(([b,v])=>[b,v,L.impC?pc(v/L.impC*100)+'%':'']),[],
@@ -212,10 +210,10 @@ function downloadExcel(){
   add('Movements',mv,[36,16,56,20,14,24]);
   // Utilisation
   const keyImp2=agg(L.cur,r=>r.c+'|'+r.seg), keyAdv2={}; L.cur.forEach(r=>{const k=r.c+'|'+r.seg;(keyAdv2[k]=keyAdv2[k]||new Set()).add(r.adv);});
-  const ut=[['Approved segment IDs',CAT.length],['Active this week (market × segment)',L.segC.size],['Approved IDs in use',L.catActive.length],['Utilisation ratio',L.util==null?'n/a':pc(L.util*100)+'%'],[],['Segment','Market','Segment ID','Status','Impressions (week)','Share','Advertisers using it'],
-    ...Object.keys(keyImp2).sort((a,b)=>keyImp2[b]-keyImp2[a]).map(k=>{const [c,...rest]=k.split('|');const s=rest.join('|');const f=L.idFor(k);return [s,cn(c),f?f.id:'',!f?'Active (not in catalogue)':(f.via?'Active (EUR listing under '+f.via+')':'Active'),keyImp2[k],L.impC?pc(keyImp2[k]/L.impC*100)+'%':'',keyAdv2[k].size];}),
-    ...CAT.filter(e=>!L.activeKeys.has(L.catKey(e))).map(e=>[e[1],cn(e[2]),e[0],'Not used',0,'',0])];
-  add('Segment utilisation',ut,[70,14,22,24,16,10,16]);
+  const ut=[['Approved segments',CAT.length],['Active this week (market × segment)',L.segC.size],['Approved segments in use',L.catActive.length],['Utilisation ratio',L.util==null?'n/a':pc(L.util*100)+'%'],[],['Segment','Market','Status','Impressions (week)','Share','Advertisers using it'],
+    ...Object.keys(keyImp2).sort((a,b)=>keyImp2[b]-keyImp2[a]).map(k=>{const [c,...rest]=k.split('|');const s=rest.join('|');const f=L.idFor(k);return [s,cn(c),!f?'Active (not in '+cn(c)+' catalogue)':'Active',keyImp2[k],L.impC?pc(keyImp2[k]/L.impC*100)+'%':'',keyAdv2[k].size];}),
+    ...CAT.filter(e=>!L.activeKeys.has(L.catKey(e))).map(e=>[e[1],cn(e[2]),'Not used',0,'',0])];
+  add('Segment utilisation',ut,[70,14,26,16,10,16]);
   // Notes
   add('Notes',[['Weekly Segment Usage Report — definitions'],[],['Reporting week',lbl],['Comparison window','Previous 4 weeks'],['Source','Amazon DSP daily segment reports (Zeotap data feed), T+4'],[],
     ['Impressions','Served impressions attributed to your segments on Amazon DSP, as reported by Amazon.'],['New advertiser','Active on your segments this week with no activity in the previous 4 weeks.'],['Stopped advertiser','Active in the previous 4 weeks with no activity this week.'],
